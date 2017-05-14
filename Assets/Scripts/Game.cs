@@ -35,6 +35,9 @@ namespace LeapSlice {
         [Range(1, 100)]
         [Tooltip("Játékmező mérete méterben.")]
         public float Scale = 50;
+        [Range(.1f, 3)]
+        [Tooltip("Objektumok kiemelkedésének szorzója SBS módban.")]
+        public float DepthScale = 1;
 
         [Range(1, 3)]
         [Tooltip("Árkád mód sebességszorzója.")]
@@ -117,12 +120,12 @@ namespace LeapSlice {
                 BottomLeft = Background.transform.position + Background.transform.rotation * new Vector3(Scale * -.5f, Scale * -.2f, Scale * -.01f);
                 BottomRight = BottomLeft + Background.transform.rotation * new Vector3(Scale, 0, 0);
                 TopLeft = BottomLeft + new Vector3(0, Scale * .4f, 0);
-                Forward = Quaternion.Euler(0, -90, 0) * (BottomRight - BottomLeft).normalized * (Scale * .06f);
+                Forward = Quaternion.Euler(0, -90, 0) * (BottomRight - BottomLeft).normalized * (Scale * .06f) * DepthScale;
             } else {
                 BottomLeft = Utils.ScreenPosInWorld(new Vector2(0, 0));
                 BottomRight = Utils.ScreenPosInWorld(new Vector2(Screen.width, 0));
                 TopLeft = Utils.ScreenPosInWorld(new Vector2(0, Screen.height));
-                Forward = Camera.main.transform.forward * Scale * .2f;
+                Forward = Camera.main.transform.forward * Scale * .2f * DepthScale;
             }
             float NormalScale = Scale * .02f;
             Pointer.GetComponent<TrailRenderer>().startWidth *= NormalScale;
@@ -403,11 +406,15 @@ namespace LeapSlice {
         /// A felhasználói felület képernyőre rajzolt része.
         /// </summary>
         void OnGUI() {
-            int ScrX = Screen.width, ScrY = Screen.height;
-            int BoxW = ScrY * 2 / 5, BoxH = ScrY / 12, HBoxW = BoxW / 2;
-            GUI.skin.box.fontSize = ScrY / 16;
-            foreach (MenuItem Item in MenuItems)
-                GUI.Box(new Rect(Item.ActualScrPos.x - HBoxW, ScrY - Item.ActualScrPos.y + ScrY / 15, BoxW, BoxH), Item.Action);
+            int ScrW = Screen.width, ScrX = !SBS.Enabled ? ScrW : ScrW / 2, ScrY = Screen.height;
+            float BoxW = ScrX / 5, BoxH = ScrX / 24, HBoxW = BoxW / 2;
+            GUI.skin.box.fontSize = ScrX / 32;
+            foreach (MenuItem Item in MenuItems) {
+                float MarginLeft = Item.ActualScrPos.x - HBoxW;
+                GUI.Box(new Rect(MarginLeft, ScrY - Item.ActualScrPos.y + ScrY / 15, BoxW, BoxH), Item.Action);
+                if (SBS.Enabled)
+                    GUI.Box(new Rect(MarginLeft > ScrX ? MarginLeft - ScrX : MarginLeft + ScrX, ScrY - Item.ActualScrPos.y + ScrY / 15, BoxW, BoxH), Item.Action);
+            }
             if (Playing) { // Játék
                 int Margin = ScrY / 20;
                 GUI.skin.label.alignment = TextAnchor.UpperRight;
@@ -565,7 +572,7 @@ namespace LeapSlice {
                         CurrentController = Controllers.LeapMotion;
                     break;
                 case Controllers.LeapMotion:
-                    int HalfLeapSpaceHeight = (int)(Screen.height * (Leap.LeapUpperBounds.x - Leap.LeapLowerBounds.x) / Screen.width);
+                    int HalfLeapSpaceHeight = (int)(Screen.height * (Leap.LeapUpperBounds.x - Leap.LeapLowerBounds.x) / Screen.width) / 2;
                     Leap.LeapLowerBounds.y = 200 - HalfLeapSpaceHeight;
                     Leap.LeapUpperBounds.y = 200 + HalfLeapSpaceHeight;
                     int ExtendedFingers = Leap.ExtendedFingers();
@@ -619,7 +626,7 @@ namespace LeapSlice {
                     }
                 }
             }
-            PointerObj.transform.position = LookingPoint;
+            PointerObj.transform.position = LookingPoint - Forward * .8f;
         }
 
         /// <summary>

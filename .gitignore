@@ -10,3 +10,6 @@ Assets/SDK/x86_64/LeapC.dll
 Assets/SDK/x86_64/LeapC.dll.meta
 *.csproj
 *.sln
+*.suo
+*.exe
+LeapSlice_Data/
