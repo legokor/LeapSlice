@@ -1,0 +1,12 @@
+Library/
+Temp/
+Assets/SDK/LeapCSharp.NET3.5.dll
+Assets/SDK/LeapCSharp.NET3.5.dll.meta
+Assets/SDK/x86.meta
+Assets/SDK/x86/LeapC.dll
+Assets/SDK/x86/LeapC.dll.meta
+Assets/SDK/x86_64.meta
+Assets/SDK/x86_64/LeapC.dll
+Assets/SDK/x86_64/LeapC.dll.meta
+*.csproj
+*.sln
