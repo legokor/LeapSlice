@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Cavern;
+using System;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -136,6 +137,7 @@ namespace LeapSlice {
             CloserTL = TopLeft - Forward;
             ForceRight = (BottomRight - BottomLeft).normalized * (Scale + Scale);
             ForceLeft = -ForceRight;
+            AudioListener3D.EnvironmentSize *= 2;
             SpawnMainMenu();
         }
 

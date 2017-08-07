@@ -31,7 +31,7 @@ public static class SingleShotAudio {
     static void AttachWithCavern(AudioClip Clip, GameObject Obj) {
         AudioSource3D Source = Obj.AddComponent<AudioSource3D>();
         Source.Clip = Clip;
-        Source.VolumeRolloff = AudioSource3D.Rolloffs.Disabled;
+        Source.VolumeRolloff = Rolloffs.Disabled;
     }
 
     /// <summary>
@@ -63,7 +63,7 @@ public static class SingleShotAudio {
     static void PlayWithCavern(AudioClip Clip, Vector3 At) {
         AudioSource3D Source = CreateContainer(Clip, At).AddComponent<AudioSource3D>();
         Source.Clip = Clip;
-        Source.VolumeRolloff = AudioSource3D.Rolloffs.Disabled;
+        Source.VolumeRolloff = Rolloffs.Disabled;
     }
 
     /// <summary>
