@@ -13,3 +13,6 @@ Assets/SDK/x86_64/LeapC.dll.meta
 *.suo
 *.exe
 LeapSlice_Data/
+Assets/SDK/LeapMotion.meta
+Assets/SDK/LeapMotion/
+obj/
