@@ -308,6 +308,7 @@ namespace LeapSlice {
         /// Játék végének kezelése, és a játék vége képernyő megjelenítése.
         /// </summary>
         void GameOver() {
+            Playing = false;
             Time.timeScale = 1; // Játék közben az idő felgyorsul, ez visszaállítja
             DisableInput = 1; // Nagyon gyakori valamelyik gomb átvágása a játék utáni kapkodásban a képernyő alján, 1 másodperc elég a játékosnak felfogni, hogy már nem lehet
             if (GameMode != GameModes.Multiplayer) { // Többjátékos módon kívül egyszerűen a játékmódnak megfelelő helyen van a rekord
@@ -543,20 +544,18 @@ namespace LeapSlice {
                 // Pontgyűjtő módok
                 if (GameMode == GameModes.ScoreAttack || GameMode == GameModes.Multiplayer) {
                     if (LoseLife) {
-                        if (--Lives == 0) {
-                            Playing = false;
+                        if (--Lives == 0)
                             GameOver();
-                        }
                         LoseLife = false;
                     }
                     // Idő elleni módok
                 } else if (GameMode == GameModes.TimeAttack || GameMode == GameModes.Arcade) {
                     TimeRemaining -= Time.deltaTime / Time.timeScale;
-                    if (TimeRemaining <= 0) {
-                        Playing = false;
+                    if (TimeRemaining <= 0)
                         GameOver();
-                    }
                 }
+                if (Input.GetKeyDown(KeyCode.Escape)) // Esc-re megállás
+                    GameOver();
             }
             // Menüobjektumok elhelyezése
             for (int i = 0; i < MenuItems.Length; i++) {
