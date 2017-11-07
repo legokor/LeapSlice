@@ -36,7 +36,7 @@ namespace LeapSlice.Debug {
             transform.rotation = Quaternion.Euler(transform.rotation.eulerAngles.x - MouseDelta.y * Sensitivity, transform.rotation.eulerAngles.y + MouseDelta.x * Sensitivity, 0);
             PrevMouse = Input.mousePosition;
             if (Input.GetMouseButtonDown(0) && HoloLauncher.Instance)
-                HoloLauncher.Instance.AirTap(new UnityEngine.VR.WSA.Input.InteractionSourceState());
+                HoloLauncher.Instance.AirTap(new UnityEngine.XR.WSA.Input.InteractionSourceState());
         }
 #endif
     }
