@@ -12,10 +12,6 @@ namespace LeapSlice {
     /// Játékmódok.
     /// </summary>
     public enum GameModes { ScoreAttack = 1, TimeAttack, Arcade, Multiplayer }
-    /// <summary>
-    /// Power upok.
-    /// </summary>
-    public enum PowerUps { None = -1, DoubleScore, Itemstorm, SlowMotion }
 
     /// <summary>
     /// A játékot kezelő fő komponens.
@@ -33,9 +29,6 @@ namespace LeapSlice {
         [Tooltip("A HoloLens dolgokat bekapcsolja, de a világot nem állítja be neki.")]
         public bool HoloLensMode = false;
 
-        [Range(1, 100)]
-        [Tooltip("Játékmező mérete méterben.")]
-        public float Scale = 50;
         [Range(.1f, 3)]
         [Tooltip("Objektumok kiemelkedésének szorzója SBS módban.")]
         public float DepthScale = 1;
@@ -86,8 +79,18 @@ namespace LeapSlice {
 
         public static Vector3 BottomLeft, BottomRight, TopLeft, CloserBL, CloserBR, CloserTL, Forward, ForceLeft, ForceRight;
 
-        LeapMotion Leap;
-
+        /// <summary>
+        /// Megnyitott menü.
+        /// </summary>
+        static int SelectedMenu = -1;
+        /// <summary>
+        /// Játékmező mérete.
+        /// </summary>
+        [NonSerialized] public float Scale;
+        /// <summary>
+        /// Menüelemek.
+        /// </summary>
+        Menus.Item[] MenuItems = new Menus.Item[0];
         /// <summary>
         /// Billentyűzet / gamepad utolsó pozíciója.
         /// </summary>
@@ -109,16 +112,14 @@ namespace LeapSlice {
         /// Játék előkészítése, elemek skálázása
         /// </summary>
         void Start() {
-            Leap = LeapMotion.Instance;
             PreviousController = CurrentController = Controllers.Mouse;
             MousePosition = Input.mousePosition;
-            if (PlayerPrefs.HasKey("Blade"))
-                SetBlade(PlayerPrefs.GetInt("Blade"));
-            if (PlayerPrefs.HasKey("Wallpaper"))
-                SetBackground(PlayerPrefs.GetInt("Wallpaper"));
+            SetBlade(PlayerPrefs.GetInt("Blade", 0));
+            SetBackground(PlayerPrefs.GetInt("Wallpaper", 0));
             for (int i = 0; i < (int)GameModes.Multiplayer; ++i)
                 TopScores[i] = PlayerPrefs.GetInt("Top" + i, 0);
             BestCombo = PlayerPrefs.GetInt("BestCombo", 0);
+            Scale = Background.transform.localScale.x;
             if (HoloLensMode) {
                 Background.transform.localScale = new Vector3(Scale, Scale * .4f, 1);
                 PreviousController = CurrentController = Controllers.HoloLens;
@@ -146,27 +147,14 @@ namespace LeapSlice {
         }
 
         /// <summary>
-        /// Menüelemek.
-        /// </summary>
-        Menus.Item[] MenuItems = new Menus.Item[0];
-        /// <summary>
-        /// Megnyitott menü.
-        /// </summary>
-        static int SelectedMenu = -1;
-        /// <summary>
-        /// Kiválasztott menüelem.
-        /// </summary>
-        public static int SelectedMenuItem;
-
-        /// <summary>
         /// Véletlenszerű tárgy a bedobálhatóak közül, árkád módban power up is lehet.
         /// </summary>
-        /// <returns>Véletlenszerű tárgy</returns>
-        public GameObject RandomObject() {
+        /// <param name="MenuItem">Ha menüelem helyén lesz, akkor annak az azonosítója</param>
+        public GameObject RandomObject(int MenuItem = -1) {
             GameObject Obj = Instantiate(Objects[Random.Range(0, Objects.Length)]); // Tárgy kiválasztása
             if (GameMode == GameModes.Arcade && Random.value < .1f) { // Árkád módban 10% eséllyel power up
                 int PowerUpKind = Random.Range(0, 3);
-                Obj.GetComponent<Target>().PowerUp = (PowerUps)PowerUpKind;
+                Obj.GetComponent<Target>().PowerUpKind = (PowerUps)PowerUpKind;
                 GameObject Aura = null; // Aura létrehozása az objektum köré
                 switch (PowerUpKind) {
                     case (int)PowerUps.DoubleScore: Aura = Instantiate(DoubleScoreMarker); break;
@@ -177,9 +165,16 @@ namespace LeapSlice {
                 Aura.transform.parent = Obj.transform;
             }
             Obj.transform.localScale *= Scale * .02f;
+            if (MenuItem != -1) {
+                Obj.name = "Menu" + MenuItem;
+                Obj.GetComponent<Rigidbody>().useGravity = false;
+            }
             return Obj;
         }
 
+        /// <summary>
+        /// Helyes méretre skálázott gránát létrehozása.
+        /// </summary>
         public GameObject ScaledGrenade() {
             GameObject Obj = Instantiate(Grenade);
             Obj.transform.localScale *= Scale * .02f;
@@ -189,14 +184,10 @@ namespace LeapSlice {
         /// <summary>
         /// Elsődleges játékos pengéjének módosítása.
         /// </summary>
-        /// <param name="N">Új penge azonosítója</param>
-        /// <returns>N</returns>
         int SetBlade(int N) { Pointer.GetComponent<Renderer>().material = Blades[N]; return N; }
         /// <summary>
         /// Háttér módosítása.
         /// </summary>
-        /// <param name="N">Új háttér azonosítója</param>
-        /// <returns>N</returns>
         int SetBackground(int N) { Background.GetComponent<Renderer>().material.mainTexture = Wallpapers[N]; return N; }
 
         /// <summary>
@@ -205,21 +196,14 @@ namespace LeapSlice {
         /// <param name="N">Elemszám</param>
         /// <param name="Partial">Ha csak egyetlen elemet kell frissíteni, akkor -1 helyett annak a helye a MenuItems tömbben</param>
         void RenewMenu(int N, int Partial = -1) {
-            SelectedMenuItem = -1;
-            if (Partial == -1) {
-                Menus.DespawnMenu(ref MenuItems);
-                MenuItems = new Menus.Item[N];
-            } else {
-                MenuItems[Partial].Obj = RandomObject();
-                MenuItems[Partial].Obj.name = "Menu" + Partial;
-                MenuItems[Partial].Obj.GetComponent<Rigidbody>().useGravity = false;
+            if (Partial != -1) {
+                MenuItems[Partial].Obj = RandomObject(Partial);
                 return;
             }
-            for (int i = 0; i < N; i++) {
-                MenuItems[i].Obj = RandomObject();
-                MenuItems[i].Obj.name = "Menu" + i;
-                MenuItems[i].Obj.GetComponent<Rigidbody>().useGravity = false;
-            }
+            Menus.DespawnMenu(ref MenuItems);
+            MenuItems = new Menus.Item[N];
+            for (int i = 0; i < N; ++i)
+                MenuItems[i].Obj = RandomObject(i);
         }
 
         /// <summary>
@@ -228,7 +212,7 @@ namespace LeapSlice {
         void SpawnMainMenu() {
             SelectedMenu = 0;
             RenewMenu(!KioskMode ? 3 : 2);
-            Menus.SetupMainMenu(ref MenuItems);
+            Menus.SetupMainMenu(MenuItems);
         }
 
         /// <summary>
@@ -241,7 +225,7 @@ namespace LeapSlice {
             int BestScore = 0;
             for (int i = 0; i < (int)GameModes.Multiplayer; ++i)
                 BestScore = Math.Max(BestScore, TopScores[i]);
-            Menus.SetupCustomizationMenu(ref MenuItems, BestScore, BestCombo);
+            Menus.SetupCustomizationMenu(MenuItems, BestScore, BestCombo);
         }
 
         /// <summary>
@@ -250,7 +234,7 @@ namespace LeapSlice {
         void SpawnModeSelect() {
             SelectedMenu = 2;
             RenewMenu(4 + Convert.ToInt32(!HoloLensMode));
-            Menus.SetupModeSelect(ref MenuItems);
+            Menus.SetupModeSelect(MenuItems);
         }
 
         /// <summary>
@@ -268,7 +252,7 @@ namespace LeapSlice {
             }
             SelectedMenu = 3;
             RenewMenu(2);
-            Menus.SetupGameOver(ref MenuItems);
+            Menus.SetupGameOver(MenuItems);
         }
 
         /// <summary>
@@ -286,13 +270,9 @@ namespace LeapSlice {
             SinceLastCombo = 0;
             if (GameMode == GameModes.Arcade) // Induljon hiperaktívan az árkád mód
                 Time.timeScale = ArcadeSpeed;
-            // Score attack / multiplayer
-            Lives = 3;
-            LoseLife = false;
-            // Time attack / arcade
-            TimeRemaining = 60;
-            // Multiplayer
-            ScoreP2 = 0;
+            Lives = 3; // Score attack / multiplayer
+            TimeRemaining = 60; // Time attack / arcade
+            ScoreP2 = 0; // Multiplayer
             CurrentController = Controllers.LeapMotion + Convert.ToInt32(HoloLensMode) * (Controllers.HoloLens - Controllers.LeapMotion);
         }
 
@@ -338,9 +318,12 @@ namespace LeapSlice {
         public static GameModes GameMode;
 
         /// <summary>
-        /// Legyen-e kezelve életvesztés a következő frissítéssel?
+        /// Életvesztéskor hívódik.
         /// </summary>
-        public static bool LoseLife;
+        public void LoseLife() {
+            if ((GameMode == GameModes.ScoreAttack || GameMode == GameModes.Multiplayer) && --Lives == 0)
+                GameOver();
+        }
 
         /// <summary>
         /// A felhasználói felület képernyőre rajzolt része.
@@ -410,56 +393,52 @@ namespace LeapSlice {
             }
         }
 
+        public void OnMenuItemSelected(int ID) {
+            switch (SelectedMenu) {
+                case 0: // Főmenü
+                    switch (ID) {
+                        case 0: SpawnModeSelect(); break; // Új játék
+                        case 1: SpawnCustomizationMenu(); break; // Testreszabás
+                        case 2: Application.Quit(); return; // Kilépés
+                    }
+                    break;
+                case 1: // Testreszabás
+                    int BladeCount = Blades.Length;
+                    if (ID == BladeCount + Wallpapers.Length) // Vissza
+                        SpawnMainMenu();
+                    else if (ID != -1) { // Kiválasztott elemek
+                        if (ID < BladeCount) {
+                            if (!MenuItems[ID].Action.StartsWith("Reach"))
+                                PlayerPrefs.SetInt("Blade", SetBlade(ID));
+                        } else if (!MenuItems[ID].Action.StartsWith("Combo"))
+                                PlayerPrefs.SetInt("Wallpaper", SetBackground(ID - BladeCount));
+                        SpawnCustomizationMenu(ID < BladeCount + Wallpapers.Length ? ID : -1);
+                    }
+                    break;
+                case 2: // Játékmódválasztó
+                    if (ID == 0)
+                        SpawnMainMenu();
+                    else
+                        LaunchGame((GameModes)ID);
+                    break;
+                case 3: // Game Over
+                    if (ID == 0) // Újra
+                        LaunchGame();
+                    else { // Főmenü
+                        GameMode = GameModes.ScoreAttack; // Ha többjátékos lenne, használható lenne a player 2 pointer, árkádban pedig powerupok kerülnének a menübe
+                        SpawnMainMenu(); // Menü megjelenítése
+                    }
+                    break;
+                default:
+                    break;
+            }
+            DisableInput = .25f;
+        }
+
         /// <summary>
         /// Képkockafrissítés.
         /// </summary>
         void Update() {
-            // Menüműveletek kezelése
-            if (SelectedMenuItem != -1) {
-                switch (SelectedMenu) {
-                    case 0: // Főmenü
-                        switch (SelectedMenuItem) {
-                            case 0: SpawnModeSelect(); break; // Új játék
-                            case 1: SpawnCustomizationMenu(); break; // Testreszabás
-                            case 2: Application.Quit(); return; // Kilépés
-                        }
-                        break;
-                    case 1: // Testreszabás
-                        int BladeCount = Blades.Length;
-                        if (SelectedMenuItem == BladeCount + Wallpapers.Length) // Vissza
-                            SpawnMainMenu();
-                        else if (SelectedMenuItem != -1) { // Kiválasztott elemek
-                            if (SelectedMenuItem < BladeCount) {
-                                if (!MenuItems[SelectedMenuItem].Action.StartsWith("Reach"))
-                                    PlayerPrefs.SetInt("Blade", SetBlade(SelectedMenuItem));
-                            } else {
-                                if (!MenuItems[SelectedMenuItem].Action.StartsWith("Combo"))
-                                    PlayerPrefs.SetInt("Wallpaper", SetBackground(SelectedMenuItem - BladeCount));
-                            }
-                            SpawnCustomizationMenu(SelectedMenuItem < BladeCount + Wallpapers.Length ? SelectedMenuItem : -1);
-                        }
-                        break;
-                    case 2: // Játékmódválasztó
-                        if (SelectedMenuItem == 0)
-                            SpawnMainMenu();
-                        else
-                            LaunchGame((GameModes)SelectedMenuItem);
-                        break;
-                    case 3: // Game Over
-                        if (SelectedMenuItem == 0) { // Újra
-                            LaunchGame(); // Új játék
-                            SelectedMenu = 0; // Enélkül maradna a Game Over UI
-                        } else { // Főmenü
-                            GameMode = GameModes.ScoreAttack; // Ha többjátékos lenne, használható lenne a player 2 pointer, árkádban pedig powerupok kerülnének a menübe
-                            SpawnMainMenu(); // Menü megjelenítése
-                        }
-                        break;
-                    default:
-                        break;
-                }
-                DisableInput = .25f;
-            }
-            SelectedMenuItem = -1;
             // Játék kezelése
             if (Playing) {
                 Dispenser.DispenserUpdate(); // Dobáló frissítése
@@ -478,15 +457,8 @@ namespace LeapSlice {
                     }
                     ThisCombo = 0;
                 }
-                // Pontgyűjtő módok
-                if (GameMode == GameModes.ScoreAttack || GameMode == GameModes.Multiplayer) {
-                    if (LoseLife) {
-                        if (--Lives == 0)
-                            GameOver();
-                        LoseLife = false;
-                    }
-                    // Idő elleni módok
-                } else if (GameMode == GameModes.TimeAttack || GameMode == GameModes.Arcade) {
+                // Idő elleni módok
+                if (GameMode == GameModes.TimeAttack || GameMode == GameModes.Arcade) {
                     TimeRemaining -= Time.deltaTime / Time.timeScale;
                     if (TimeRemaining <= 0)
                         GameOver();
@@ -495,11 +467,7 @@ namespace LeapSlice {
                     GameOver();
             }
             // Menüobjektumok elhelyezése
-            for (int i = 0; i < MenuItems.Length; i++) {
-                MenuItems[i].Obj.transform.position = new Vector3(Mathf.Lerp(CloserBL.x, CloserBR.x, MenuItems[i].ScreenPos.x), Mathf.Lerp(CloserBL.y, CloserTL.y, MenuItems[i].ScreenPos.y),
-                    Mathf.Lerp(CloserBL.z, CloserBR.z, MenuItems[i].ScreenPos.x));
-                MenuItems[i].ActualScrPos = Camera.main.WorldToScreenPoint(MenuItems[i].Obj.transform.position);
-            }
+            Menus.PlaceMenu(MenuItems);
             // Kurzor helye a kijelzőn és a világban
             Vector2 LookPosition = new Vector2(-1, -1), OldPosition = Vector2.zero, OldP2Position = Vector2.zero;
             switch (PreviousController) {
@@ -518,6 +486,7 @@ namespace LeapSlice {
                     SwitchController();
                     break;
                 case Controllers.LeapMotion:
+                    LeapMotion Leap = LeapMotion.Instance;
                     int HalfLeapSpaceHeight = (int)(Screen.height * (Leap.LeapUpperBounds.x - Leap.LeapLowerBounds.x) / Screen.width) / 2;
                     Leap.LeapLowerBounds.y = 200 - HalfLeapSpaceHeight;
                     Leap.LeapUpperBounds.y = 200 + HalfLeapSpaceHeight;
@@ -558,7 +527,7 @@ namespace LeapSlice {
                 CurrentController = Controllers.DualAxis;
                 return;
             }
-            if (CurrentController != Controllers.LeapMotion && Leap.SinglePointOnScreen().x != -1) { // Ha megmozdul a LeapMotion, váltson rá
+            if (CurrentController != Controllers.LeapMotion && LeapMotion.Instance.SinglePointOnScreen().x != -1) { // Ha megmozdul a LeapMotion, váltson rá
                 CurrentController = Controllers.LeapMotion;
                 return;
             }

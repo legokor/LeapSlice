@@ -4,10 +4,7 @@ namespace LeapSlice {
     /// <summary>
     /// Gyors tárgybedobáló power up.
     /// </summary>
-    public class PwrItemstorm : MonoBehaviour {
-        [Tooltip("A power up működési ideje.")]
-        [Range(.5f, 5)]
-        public float Duration = 1.5f;
+    public class PwrItemstorm : PowerUp {
         [Tooltip("Másodpercenként bedobált tárgyak száma.")]
         [Range(5, 25)]
         public int ObjectsPerSec = 10;
@@ -18,10 +15,10 @@ namespace LeapSlice {
         float Delay = 0;
 
         /// <summary>
-        /// Indításkor adjon neki élettartamot.
+        /// Konstruktor, időtartam beállítása.
         /// </summary>
-        void Start() {
-            gameObject.AddComponent<DespawnTime>().Timer = Duration;
+        public PwrItemstorm() {
+            Duration = 1.5f;
         }
 
         /// <summary>
@@ -40,13 +37,6 @@ namespace LeapSlice {
                 Dispenser.ForceDispense();
                 Delay = 1 / (float)ObjectsPerSec;
             }
-        }
-
-        /// <summary>
-        /// Egy tárgyvihar aktiválása.
-        /// </summary>
-        public static void Activate() {
-            (new GameObject()).AddComponent<PwrItemstorm>();
         }
     }
 }

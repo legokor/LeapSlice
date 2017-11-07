@@ -34,9 +34,22 @@ namespace LeapSlice {
         }
 
         /// <summary>
+        /// Menüelemek helyének frissítése az aránylagos helyük alapján.
+        /// </summary>
+        public static void PlaceMenu(Item[] MenuItems) {
+            for (int i = 0; i < MenuItems.Length; i++) {
+                MenuItems[i].Obj.transform.position = new Vector3(
+                    Mathf.Lerp(Game.CloserBL.x, Game.CloserBR.x, MenuItems[i].ScreenPos.x),
+                    Mathf.Lerp(Game.CloserBL.y, Game.CloserTL.y, MenuItems[i].ScreenPos.y),
+                    Mathf.Lerp(Game.CloserBL.z, Game.CloserBR.z, MenuItems[i].ScreenPos.x));
+                MenuItems[i].ActualScrPos = Camera.main.WorldToScreenPoint(MenuItems[i].Obj.transform.position);
+            }
+        }
+
+        /// <summary>
         /// Főmenü kitöltése.
         /// </summary>
-        public static void SetupMainMenu(ref Item[] MenuItems) {
+        public static void SetupMainMenu(Item[] MenuItems) {
             MenuItems[0].Action = "New Game";
             MenuItems[0].ScreenPos = new Vector2(.25f, .5f);
             MenuItems[1].Action = "Customize";
@@ -51,7 +64,7 @@ namespace LeapSlice {
         /// <summary>
         /// Személyreszabási képernyő kitöltése.
         /// </summary>
-        public static void SetupCustomizationMenu(ref Item[] MenuItems, int BestScore, int BestCombo) {
+        public static void SetupCustomizationMenu(Item[] MenuItems, int BestScore, int BestCombo) {
             int BladeCount = Game.Instance.Blades.Length, WallpaperCount = Game.Instance.Wallpapers.Length, Back = BladeCount + WallpaperCount;
             MenuItems[0].Action = "Rust";
             MenuItems[0].ScreenPos = new Vector2(.1f, .66f);
@@ -74,7 +87,7 @@ namespace LeapSlice {
         /// <summary>
         /// Módválasztó képernyő kitöltése.
         /// </summary>
-        public static void SetupModeSelect(ref Item[] MenuItems) {
+        public static void SetupModeSelect(Item[] MenuItems) {
             MenuItems[0].Action = "Back";
             MenuItems[0].ScreenPos = new Vector2(.75f, .25f);
             MenuItems[(int)GameModes.ScoreAttack].Action = "Score Attack";
@@ -91,7 +104,7 @@ namespace LeapSlice {
         /// <summary>
         /// Játék vége képernyő kitöltése.
         /// </summary>
-        public static void SetupGameOver(ref Item[] MenuItems) {
+        public static void SetupGameOver(Item[] MenuItems) {
             MenuItems[0].Action = "Retry";
             MenuItems[0].ScreenPos = new Vector2(.25f, .25f);
             MenuItems[1].Action = "Main Menu";

@@ -4,11 +4,7 @@ namespace LeapSlice {
     /// <summary>
     /// Pontduplázó power up.
     /// </summary>
-    public class PwrDoubleScore : MonoBehaviour {
-        [Tooltip("A power up működési ideje.")]
-        [Range(3, 15)]
-        public float Duration = 4.5f;
-
+    public class PwrDoubleScore : PowerUp {
         /// <summary>
         /// A nem megduplázandó, power up előtt szerzett pontok
         /// </summary>
@@ -24,6 +20,13 @@ namespace LeapSlice {
         static PwrDoubleScore Instance = null;
 
         /// <summary>
+        /// Konstruktor, időtartam beállítása.
+        /// </summary>
+        public PwrDoubleScore() {
+            Duration = 4.5f;
+        }
+
+        /// <summary>
         /// Indításkor adjon neki élettartamot, és törölje a hasonló power upokat, különben egymást pörgetik.
         /// </summary>
         void Start() {
@@ -31,7 +34,6 @@ namespace LeapSlice {
                 Destroy(Instance.gameObject);
             Instance = this;
             ScoreBefore = Game.Score;
-            gameObject.AddComponent<DespawnTime>().Timer = Duration;
         }
 
         /// <summary>
@@ -48,13 +50,6 @@ namespace LeapSlice {
             int ScoreEarned = Game.Score - ScoreBefore - ScoreGiven;
             ScoreGiven += ScoreEarned << 1;
             Game.Score = ScoreBefore + ScoreGiven;
-        }
-
-        /// <summary>
-        /// Egy pontduplázó aktiválása.
-        /// </summary>
-        public static void Activate() {
-            (new GameObject()).AddComponent<PwrDoubleScore>();
         }
     }
 }

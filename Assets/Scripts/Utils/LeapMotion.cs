@@ -44,7 +44,7 @@ public class LeapMotion : Singleton<LeapMotion> {
     /// </summary>
     /// <returns>Ennyi kezet lát a kontroller</returns>
     public int GetHandCount() {
-        return Device.Frame().Hands.Count;
+        return Device.IsConnected ? Device.Frame().Hands.Count : 0;
     }
 
     /// <summary>

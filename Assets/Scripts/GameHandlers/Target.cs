@@ -25,7 +25,7 @@ namespace LeapSlice {
         /// <summary>
         /// Power up-e.
         /// </summary>
-        public PowerUps PowerUp = PowerUps.None;
+        public PowerUps PowerUpKind = PowerUps.None;
 
         /// <summary>
         /// El lett-e vágva.
@@ -64,34 +64,35 @@ namespace LeapSlice {
             if (GotHit || !Body)
                 return;
             GotHit = true; // Ha ez nincs, rengetegszer meghívódna a függvény
+            Game TheGame = Game.Instance;
             if (name.StartsWith("Menu"))
-                Game.SelectedMenuItem = Convert.ToInt32(name.Substring(4)); // A kiválasztott menüelem száma a névben van
+                TheGame.OnMenuItemSelected(Convert.ToInt32(name.Substring(4))); // A kiválasztott menüelem száma a névben van
             if (Game.Playing) { // Csak játék közben módosítson statisztikákat, mert a Game Over menüvel nem tűnnek el -> nem bug, feature
                 Dispenser.ObjectDespawned();
                 Game.SinceLastCombo = 0;
                 Game.ThisCombo++;
                 Game.LastHit = transform.position;
                 if (Type == Types.Grenade) {
-                    ((GameObject)Instantiate(Game.Instance.Explosion, transform.position, transform.rotation)).transform.localScale *= Game.Instance.Scale * .1f; // Nagyobb robbanás effekt
+                    Instantiate(TheGame.Explosion, transform.position, transform.rotation).transform.localScale *= TheGame.Scale * .1f; // Nagyobb robbanás effekt
                     foreach (Rigidbody EachBody in FindObjectsOfType(typeof(Rigidbody))) { // Lökjön el mindent magától
                         if (EachBody != Body) {
                             Destroy(EachBody.gameObject.GetComponent<Target>());
                             EachBody.gameObject.AddComponent<DespawnTime>();
                             Dispenser.ObjectDespawned();
                         }
-                        EachBody.AddExplosionForce(Game.Instance.Scale * 50, transform.position, Game.Instance.Scale + Game.Instance.Scale);
+                        EachBody.AddExplosionForce(TheGame.Scale * 50, transform.position, TheGame.Scale + TheGame.Scale);
                     }
-                    Game.LoseLife = true;
+                    TheGame.LoseLife();
                     if (Game.GameMode == GameModes.Multiplayer) // Többjátékos módban pontlevonás is jár a gránátért
                         Score -= 25;
                     Game.ThisCombo = 0;
                 } else
                     Score++;
                 // Ha power up vágódott el, aktiválódjon
-                if (PowerUp != PowerUps.None) switch (PowerUp) {
-                        case PowerUps.DoubleScore: PwrDoubleScore.Activate(); break;
-                        case PowerUps.Itemstorm: PwrItemstorm.Activate(); break;
-                        case PowerUps.SlowMotion: PwrSlowMotion.Activate(transform.position); break;
+                if (PowerUpKind != PowerUps.None) switch (PowerUpKind) {
+                        case PowerUps.DoubleScore: PowerUp.Activate<PwrDoubleScore>(); break;
+                        case PowerUps.Itemstorm: PowerUp.Activate<PwrItemstorm>(); break;
+                        case PowerUps.SlowMotion: PowerUp.Activate<PwrSlowMotion>(); break;
                     }
             }
             Vector3 ParentVelocity = Body.velocity;
@@ -101,10 +102,10 @@ namespace LeapSlice {
                 Rigidbody ChildBody = Shrapnel.AddComponent<Rigidbody>();
                 ChildBody.AddForce(ParentVelocity);
                 ChildBody.AddTorque(new Vector3(Random.value * 100, Random.value * 100, Random.value * 100));
-                ChildBody.AddExplosionForce(Game.Instance.Scale * 6, transform.position, 10);
+                ChildBody.AddExplosionForce(TheGame.Scale * 6, transform.position, 10);
             }
-            ((GameObject)Instantiate(Game.Instance.Explosion, transform.position, transform.rotation)).transform.localScale *= Game.Instance.Scale * .02f; // Robbanás effekt
-            SingleShotAudio.Play(Game.Instance.SliceSounds[Random.Range(0, Game.Instance.SliceSounds.Length)], transform.position); // Vágás hangja
+            Instantiate(TheGame.Explosion, transform.position, transform.rotation).transform.localScale *= TheGame.Scale * .02f; // Robbanás effekt
+            SingleShotAudio.Play(TheGame.SliceSounds[Random.Range(0, TheGame.SliceSounds.Length)], transform.position); // Vágás hangja
             Destroy(gameObject);
         }
 
@@ -120,7 +121,7 @@ namespace LeapSlice {
             GameObject Marker = new GameObject(); // Jelző a képernyőre
             Marker.transform.position = transform.position;
             Marker.AddComponent<FallMarker>().Duration *= Time.timeScale;
-            Game.LoseLife = true; // Életvesztés
+            Game.Instance.LoseLife(); // Életvesztés
         }
     }
 }
