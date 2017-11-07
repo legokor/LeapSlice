@@ -7,7 +7,7 @@ namespace LeapSlice {
     /// <summary>
     /// Támogatott vezérlők.
     /// </summary>
-    public enum Controllers { Mouse, LeapMotion, HoloLens }
+    public enum Controllers { Mouse, DualAxis, LeapMotion, HoloLens }
     /// <summary>
     /// Játékmódok.
     /// </summary>
@@ -89,7 +89,11 @@ namespace LeapSlice {
         LeapMotion Leap;
 
         /// <summary>
-        /// Egér pozíciója a képernyőn.
+        /// Billentyűzet / gamepad utolsó pozíciója.
+        /// </summary>
+        Vector2 AxesPosition = Vector2.zero;
+        /// <summary>
+        /// Egér utolsó pozíciója a képernyőn.
         /// </summary>
         Vector2 MousePosition = Vector2.zero;
         /// <summary>
@@ -172,13 +176,13 @@ namespace LeapSlice {
                 Aura.transform.position = Obj.transform.position;
                 Aura.transform.parent = Obj.transform;
             }
-            Obj.transform.localScale *= Game.Instance.Scale * .02f;
+            Obj.transform.localScale *= Scale * .02f;
             return Obj;
         }
 
         public GameObject ScaledGrenade() {
             GameObject Obj = Instantiate(Grenade);
-            Obj.transform.localScale *= Game.Instance.Scale * .02f;
+            Obj.transform.localScale *= Scale * .02f;
             return Obj;
         }
 
@@ -459,7 +463,7 @@ namespace LeapSlice {
             // Játék kezelése
             if (Playing) {
                 Dispenser.DispenserUpdate(); // Dobáló frissítése
-                                             // Kombó kiértékelése
+                // Kombó kiértékelése
                 SinceLastCombo += Time.deltaTime;
                 if (SinceLastCombo > .15f && GameMode != GameModes.Multiplayer) {
                     if (ThisCombo > 2) {
@@ -497,13 +501,21 @@ namespace LeapSlice {
                 MenuItems[i].ActualScrPos = Camera.main.WorldToScreenPoint(MenuItems[i].Obj.transform.position);
             }
             // Kurzor helye a kijelzőn és a világban
-            Vector2 LookPosition = new Vector2(-1, -1), OldPosition = new Vector2(), OldP2Position = new Vector2();
+            Vector2 LookPosition = new Vector2(-1, -1), OldPosition = Vector2.zero, OldP2Position = Vector2.zero;
             switch (PreviousController) {
                 case Controllers.Mouse:
                     OldPosition = MousePosition;
                     LookPosition = MousePosition = Input.mousePosition;
-                    if (Leap.SinglePointOnScreen().x != -1) // Ha megmozdul a LeapMotion, váltson rá
-                        CurrentController = Controllers.LeapMotion;
+                    SwitchController();
+                    break;
+                case Controllers.DualAxis:
+                    OldPosition = AxesPosition;
+                    float ScreenHeight = Screen.height, TimeScale = 10 * Time.deltaTime;
+                    LookPosition = AxesPosition = new Vector2() {
+                        x = Mathf.Clamp(AxesPosition.x + Input.GetAxis("Horizontal") * ScreenHeight * TimeScale, 0, Screen.width),
+                        y = Mathf.Clamp(AxesPosition.y + Input.GetAxis("Vertical") * ScreenHeight * TimeScale, 0, ScreenHeight)
+                    };
+                    SwitchController();
                     break;
                 case Controllers.LeapMotion:
                     int HalfLeapSpaceHeight = (int)(Screen.height * (Leap.LeapUpperBounds.x - Leap.LeapLowerBounds.x) / Screen.width) / 2;
@@ -517,8 +529,8 @@ namespace LeapSlice {
                     if (GameMode == GameModes.Multiplayer) {
                         OldP2Position = MousePosition;
                         MousePosition = Input.mousePosition;
-                    } else if (MousePosition.x != Input.mousePosition.x || MousePosition.y != Input.mousePosition.y) // Ha megmozdul az egér, váltson rá
-                        CurrentController = Controllers.Mouse;
+                    } else
+                        SwitchController();
                     break;
                 case Controllers.HoloLens:
                     OldPosition = LookPosition = new Vector2(Screen.width / 2, Screen.height / 2);
@@ -532,6 +544,24 @@ namespace LeapSlice {
             PointerHandler(ref Pointer, ref OldPosition, ref LookPosition, ref Score, ref LookPoint);
             if (GameMode == GameModes.Multiplayer)
                 PointerHandler(ref Player2, ref OldP2Position, ref MousePosition, ref ScoreP2, ref LookPointP2);
+        }
+
+        /// <summary>
+        /// Váltson arra a vezérlőre, ahonnan érkezik bemenet.
+        /// </summary>
+        void SwitchController() {
+            if (CurrentController != Controllers.Mouse && (MousePosition.x != Input.mousePosition.x || MousePosition.y != Input.mousePosition.y)) { // Ha megmozdul az egér, váltson rá
+                CurrentController = Controllers.Mouse;
+                return;
+            }
+            if (CurrentController != Controllers.DualAxis && (Input.GetAxis("Horizontal") != 0 || Input.GetAxis("Vertical") != 0)) { // Ha bemenet érkezik billentyűzetről / gamepadről
+                CurrentController = Controllers.DualAxis;
+                return;
+            }
+            if (CurrentController != Controllers.LeapMotion && Leap.SinglePointOnScreen().x != -1) { // Ha megmozdul a LeapMotion, váltson rá
+                CurrentController = Controllers.LeapMotion;
+                return;
+            }
         }
 
         /// <summary>
