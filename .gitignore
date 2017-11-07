@@ -16,3 +16,4 @@ LeapSlice_Data/
 Assets/SDK/LeapMotion.meta
 Assets/SDK/LeapMotion/
 obj/
+.vs/

@@ -142,30 +142,9 @@ namespace LeapSlice {
         }
 
         /// <summary>
-        /// Menüelem.
-        /// </summary>
-        struct MenuItem {
-            /// <summary>
-            /// A menüelemet reprezentáló objektum, aminek átvágásával az adott elemet ki lehet választani.
-            /// </summary>
-            public GameObject Obj;
-            /// <summary>
-            /// Aránylagos hely a háttérkép négy sarka közt.
-            /// </summary>
-            public Vector2 ScreenPos;
-            /// <summary>
-            /// Hely a képernyőn.
-            /// </summary>
-            public Vector2 ActualScrPos;
-            /// <summary>
-            /// Címke.
-            /// </summary>
-            public string Action;
-        }
-        /// <summary>
         /// Menüelemek.
         /// </summary>
-        MenuItem[] MenuItems = new MenuItem[0];
+        Menus.Item[] MenuItems = new Menus.Item[0];
         /// <summary>
         /// Megnyitott menü.
         /// </summary>
@@ -224,8 +203,8 @@ namespace LeapSlice {
         void RenewMenu(int N, int Partial = -1) {
             SelectedMenuItem = -1;
             if (Partial == -1) {
-                DespawnMenu();
-                MenuItems = new MenuItem[N];
+                Menus.DespawnMenu(ref MenuItems);
+                MenuItems = new Menus.Item[N];
             } else {
                 MenuItems[Partial].Obj = RandomObject();
                 MenuItems[Partial].Obj.name = "Menu" + Partial;
@@ -245,15 +224,7 @@ namespace LeapSlice {
         void SpawnMainMenu() {
             SelectedMenu = 0;
             RenewMenu(!KioskMode ? 3 : 2);
-            MenuItems[0].Action = "New Game";
-            MenuItems[0].ScreenPos = new Vector2(.25f, .5f);
-            MenuItems[1].Action = "Customize";
-            if (!KioskMode) {
-                MenuItems[1].ScreenPos = new Vector2(.5f, .5f);
-                MenuItems[2].Action = "Quit";
-                MenuItems[2].ScreenPos = new Vector2(.75f, .5f);
-            } else
-                MenuItems[1].ScreenPos = new Vector2(.75f, .5f);
+            Menus.SetupMainMenu(ref MenuItems);
         }
 
         /// <summary>
@@ -263,26 +234,10 @@ namespace LeapSlice {
         void SpawnCustomizationMenu(int Partial = -1) {
             SelectedMenu = 1;
             RenewMenu(8, Partial);
-            int BladeCount = Blades.Length, WallpaperCount = Wallpapers.Length, Back = BladeCount + WallpaperCount; // Tudom, hogy ocsmány, de kényelmes
             int BestScore = 0;
             for (int i = 0; i < (int)GameModes.Multiplayer; ++i)
                 BestScore = Math.Max(BestScore, TopScores[i]);
-            MenuItems[0].Action = "Rust";
-            MenuItems[0].ScreenPos = new Vector2(.1f, .66f);
-            MenuItems[1].Action = BestScore >= 100 ? "Poo" : "Reach 100";
-            MenuItems[1].ScreenPos = new Vector2(.1f, .33f);
-            MenuItems[2].Action = BestScore >= 150 ? "Flame" : "Reach 150";
-            MenuItems[2].ScreenPos = new Vector2(.3f, .66f);
-            MenuItems[3].Action = BestScore >= 200 ? "Gold" : "Reach 200";
-            MenuItems[3].ScreenPos = new Vector2(.3f, .33f);
-            float WallPart = 1f / (WallpaperCount + 1);
-            for (int i = BladeCount; i < Back; i++)
-                MenuItems[i].ScreenPos = new Vector2(.6f, (Back - i) * WallPart);
-            MenuItems[BladeCount++].Action = "Bus Seat";
-            MenuItems[BladeCount++].Action = BestCombo >= 5 ? "Cliff" : "Combo 5";
-            MenuItems[BladeCount++].Action = BestCombo >= 7 ? "Stoned" : "Combo 7";
-            MenuItems[Back].Action = "Back";
-            MenuItems[Back].ScreenPos = new Vector2(.9f, .5f);
+            Menus.SetupCustomizationMenu(ref MenuItems, BestScore, BestCombo);
         }
 
         /// <summary>
@@ -291,17 +246,7 @@ namespace LeapSlice {
         void SpawnModeSelect() {
             SelectedMenu = 2;
             RenewMenu(4 + Convert.ToInt32(!HoloLensMode));
-            MenuItems[0].Action = "Back";
-            MenuItems[0].ScreenPos = new Vector2(.75f, .25f);
-            MenuItems[(int)GameModes.ScoreAttack].Action = "Score Attack";
-            MenuItems[(int)GameModes.ScoreAttack].ScreenPos = new Vector2(.25f, .75f);
-            MenuItems[(int)GameModes.TimeAttack].Action = "Time Attack";
-            MenuItems[(int)GameModes.TimeAttack].ScreenPos = new Vector2(.5f, .75f);
-            MenuItems[(int)GameModes.Arcade].Action = "Arcade";
-            MenuItems[(int)GameModes.Arcade].ScreenPos = new Vector2(.75f, .75f);
-            if (HoloLensMode) return;
-            MenuItems[(int)GameModes.Multiplayer].Action = "Multiplayer";
-            MenuItems[(int)GameModes.Multiplayer].ScreenPos = new Vector2(.25f, .25f);
+            Menus.SetupModeSelect(ref MenuItems);
         }
 
         /// <summary>
@@ -319,19 +264,7 @@ namespace LeapSlice {
             }
             SelectedMenu = 3;
             RenewMenu(2);
-            MenuItems[0].Action = "Retry";
-            MenuItems[0].ScreenPos = new Vector2(.25f, .25f);
-            MenuItems[1].Action = "Main Menu";
-            MenuItems[1].ScreenPos = new Vector2(.75f, .25f);
-        }
-
-        /// <summary>
-        /// Menü eltüntetése.
-        /// </summary>
-        void DespawnMenu() {
-            foreach (MenuItem Item in MenuItems)
-                Destroy(Item.Obj);
-            MenuItems = new MenuItem[0];
+            Menus.SetupGameOver(ref MenuItems);
         }
 
         /// <summary>
@@ -341,7 +274,7 @@ namespace LeapSlice {
         void LaunchGame(GameModes? Mode = null) {
             if (Mode.HasValue)
                 GameMode = Mode.Value;
-            DespawnMenu();
+            Menus.DespawnMenu(ref MenuItems);
             Dispenser.DispenserReset();
             Playing = true;
             Score = 0;
@@ -412,7 +345,7 @@ namespace LeapSlice {
             int ScrW = Screen.width, ScrX = !SBS.Enabled ? ScrW : ScrW / 2, ScrY = Screen.height;
             float BoxW = ScrX / 5, BoxH = ScrX / 24, HBoxW = BoxW / 2;
             GUI.skin.box.fontSize = ScrX / 32;
-            foreach (MenuItem Item in MenuItems) {
+            foreach (Menus.Item Item in MenuItems) {
                 float MarginLeft = Item.ActualScrPos.x - HBoxW;
                 GUI.Box(new Rect(MarginLeft, ScrY - Item.ActualScrPos.y + ScrY / 15, BoxW, BoxH), Item.Action);
                 if (SBS.Enabled)

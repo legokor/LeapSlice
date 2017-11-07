@@ -67,7 +67,7 @@ namespace LeapSlice {
                     ThisPack = Random.Range(1, 10);
                     Shot = Despawned = 0;
                     NextPack = 2;
-                    DropDelay = CurrentDrop = Random.value * Convert.ToInt32(!Input.GetKey(KeyCode.C)); // Igen, C-t nyomva bedobja egyben, és igen, ez cheat
+                    DropDelay = CurrentDrop = !Input.GetKey(KeyCode.C) ? Random.value : 0; // Igen, C-t nyomva bedobja egyben, és igen, ez cheat
                 }
                 // Dolgok bedobálása
             } else if (ThisPack != Shot) {
