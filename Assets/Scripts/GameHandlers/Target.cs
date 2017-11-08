@@ -65,8 +65,6 @@ namespace LeapSlice {
                 return;
             GotHit = true; // Ha ez nincs, rengetegszer meghívódna a függvény
             Game TheGame = Game.Instance;
-            if (name.StartsWith("Menu"))
-                TheGame.OnMenuItemSelected(Convert.ToInt32(name.Substring(4))); // A kiválasztott menüelem száma a névben van
             if (Game.Playing) { // Csak játék közben módosítson statisztikákat, mert a Game Over menüvel nem tűnnek el -> nem bug, feature
                 Dispenser.ObjectDespawned();
                 Game.SinceLastCombo = 0;
@@ -95,8 +93,11 @@ namespace LeapSlice {
                         case PowerUps.SlowMotion: PowerUp.Activate<PwrSlowMotion>(); break;
                     }
             }
+            if (name.StartsWith("Menu"))
+                TheGame.OnMenuItemSelected(Convert.ToInt32(name.Substring(4))); // A kiválasztott menüelem száma a névben van
             Vector3 ParentVelocity = Body.velocity;
-            foreach (GameObject Shrapnel in Shrapnels) { // Essen szét darabokra
+            // Essen szét darabokra
+            foreach (GameObject Shrapnel in Shrapnels) {
                 Shrapnel.transform.parent = null;
                 Shrapnel.AddComponent<Despawner>();
                 Rigidbody ChildBody = Shrapnel.AddComponent<Rigidbody>();
