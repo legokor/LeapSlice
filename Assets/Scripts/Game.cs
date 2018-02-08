@@ -491,7 +491,9 @@ namespace LeapSlice {
                     Leap.LeapLowerBounds.y = 200 - HalfLeapSpaceHeight;
                     Leap.LeapUpperBounds.y = 200 + HalfLeapSpaceHeight;
                     int ExtendedFingers = Leap.ExtendedFingers();
-                    if (Leap.GetHandCount() != 0 && ExtendedFingers != 0) {
+                    if (Leap.GetHandCount() == 0) {
+                        DisableInput = .125f;
+                    } else if (ExtendedFingers != 0) {
                         OldPosition = LeapPosition;
                         LookPosition = LeapPosition = ExtendedFingers == 1 ? Leap.SinglePointOnScreen() : Leap.PalmOnScreen();
                     }
