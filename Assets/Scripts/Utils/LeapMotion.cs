@@ -34,7 +34,7 @@ public class LeapMotion : Singleton<LeapMotion> {
     /// <param name="FromLeap">LeapMotion által érzékelt pozíció</param>
     /// <returns>Képernyőpozíció</returns>
     Vector2 ScreenFromLeap(Vector2 FromLeap) {
-        float LeftBounds = !SBS.Enabled ? LeapLowerBounds.x : (LeapLowerBounds.x + (LeapUpperBounds.x - LeapLowerBounds.x));
+        float LeftBounds = !SBS.Enabled ? LeapLowerBounds.x : (LeapLowerBounds.x - (LeapUpperBounds.x - LeapLowerBounds.x));
         return new Vector2(
             (Mathf.Clamp(FromLeap.x, LeftBounds, LeapUpperBounds.x) - LeftBounds) / (LeapUpperBounds.x - LeftBounds) * Screen.width,
             (Mathf.Clamp(FromLeap.y, LeapLowerBounds.y, LeapUpperBounds.y) - LeapLowerBounds.y) / (LeapUpperBounds.y - LeapLowerBounds.y) * Screen.height);
